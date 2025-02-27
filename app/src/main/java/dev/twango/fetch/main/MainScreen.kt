@@ -6,19 +6,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.twango.fetch.data.Item
+import dev.twango.fetch.data.ServerApi.groupByListId
 import dev.twango.fetch.ui.ItemViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun FetchTakeHomeApp() {
@@ -56,7 +60,9 @@ fun ListGroup(group: Pair<Int, List<Item>>) {
         modifier = Modifier
             .padding(16.dp)
             .fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(4.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
     ) {
 
         Column(
@@ -76,33 +82,30 @@ fun ListGroup(group: Pair<Int, List<Item>>) {
     }
 }
 
-/**
- * Groups items by listId and sorts them by id. The groups are then sorted by listId and converted to a list for compatibility with [LazyColumn].
- */
-fun groupByListId(items: List<Item>): List<Pair<Int, List<Item>>> {
-    val filteredItems = items.filter { !it.name.isNullOrBlank() }
-    val map = filteredItems.groupBy { it.listId }
 
-    val sortedMap = mutableMapOf<Int, List<Item>>()
-    map.forEach { (listId, items) -> // Populate sortedMap with items sorted by id
-        sortedMap[listId] = items.sortedBy { it.id }
-    }
-
-    val groups = sortedMap.toList()
-    return groups.sortedBy { it.first } // Sort groups (listIds)
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FetchTakeHomeContent(paddingValues: PaddingValues, viewModel: ItemViewModel = viewModel()) {
 
     val itemList = viewModel.items.value
     val groups = groupByListId(itemList)
 
-    LazyColumn(contentPadding = paddingValues) {
-        items(groups) { group ->
-            ListGroup(group)
+    PullToRefreshBox(
+        onRefresh = {
+            viewModel.viewModelScope.launch {
+                viewModel.updateItems()
+            }
+        },
+        isRefreshing = viewModel.isRefreshing.value,
+    ) {
+
+        LazyColumn(contentPadding = paddingValues) {
+            items(groups) { group ->
+                ListGroup(group)
+            }
         }
     }
+
 }
 
 

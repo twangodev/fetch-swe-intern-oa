@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 class ItemViewModel : ViewModel() {
 
     val items = mutableStateOf<List<Item>>(emptyList())
+    val isRefreshing = mutableStateOf(false)
 
     init {
 
@@ -19,12 +20,14 @@ class ItemViewModel : ViewModel() {
 
     }
 
-    private suspend fun updateItems() {
+    suspend fun updateItems() {
+        isRefreshing.value = true
         try {
             items.value = ServerApi.fetchItems()
-
         } catch (e: Exception) {
             e.printStackTrace()
+        } finally {
+            isRefreshing.value = false
         }
     }
 
