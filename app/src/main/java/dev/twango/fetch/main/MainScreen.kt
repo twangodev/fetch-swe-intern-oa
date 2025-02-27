@@ -53,7 +53,7 @@ fun FetchTakeHomeTopBar() {
 fun ListItem(item: Item) {
 
     Text(
-        text = item.name ?: "No name",
+        text = item.name ?: "No name", // Shouldn't happen, same effect as a null-assertion operator
         style = MaterialTheme.typography.bodyMedium,
         modifier = Modifier.padding(vertical = 4.dp)
     )
